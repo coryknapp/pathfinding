@@ -42,24 +42,35 @@ public:
 
 	Search(	const node_t& start,const node_t& end){
 
-		//create the first internal node, the ancestor to all nodes.
+		//create the first internal node, the ancestor to all nodes, and
+		//initialize it.
 		InternalNode * startNodePtr = newInternalNode();
+		//copy the address of the user defined node.
+		//TODO there could be cases where the user's node may be freed. so we
+		//put in an option to copy nodes if necessary.
 		startNodePtr->externalNode = &start;
+		//clear the scores for the new node.
 		startNodePtr->h = 0;
 		startNodePtr->g = 0;
 		startNodePtr->f = 0;
+		//keep track of how long the paths are to ease allocating a vector to
+		//hold the path later
 		startNodePtr->graphLength = 1;
+		//put node in the list of candidate nodes.
 		m_openList.push_back( startNodePtr );
+
 		while( !m_openList.empty() ){
-			// find the openList with the lowest 'f' score.
+			// find the node on the open list with the lowest 'f' score.
 			std::sort( m_openList.begin(), m_openList.end(),
+				//TODO we don't really need to sort this list, we just need to
+				//find the smallest f value.
 				[]( const InternalNode* a, const InternalNode* b ) -> bool{
 					return a->f > b->f;
 				});
-    		//pop q off the open lit
+    		//pop q off the open list
 			auto q = m_openList[ m_openList.size()-1 ];
 			m_openList.pop_back();
-			//generate q's successors and set their parents to q
+			//generate q's successors
 			auto successorList =
 				adaptorFunctor.getAdjacentNodes(*(q->externalNode));
 			for (auto &externalNodeSuccessor : successorList) {
@@ -73,8 +84,14 @@ public:
 					m_lastNode->graphLength = q->graphLength +1;
 					return;
 				}
+				// create and initialize a new internal node for each of q's
+				// successor's
 				InternalNode * newNodePtr = newInternalNode();
+				//copy address of the external node. TODO as discussed above,
+				//we may want to add an option where pathfinding copies nodes
+				//for when the user doesn't have persistent node objects. 
 				newNodePtr->externalNode = externalNodeSuccessor;
+				//calculate the new node's scored
 				newNodePtr->g = q->g +
 					adaptorFunctor.heuristicDistanceBetweenAdjacentNodes(
 						*newNodePtr->externalNode, *q->externalNode );
@@ -84,6 +101,8 @@ public:
 				newNodePtr->f = newNodePtr->g + newNodePtr->h;
 				newNodePtr->graphLength = q->graphLength+1;
 				newNodePtr->parent = q;
+				//addFlag can be changed by the two conditionals below if the
+				//new node is unsuitable.
 				bool addFlag = true;
 				//if a node with the same position as successor is in the OPEN
 				//list which has a lower f than successor, skip this successor
@@ -117,13 +136,22 @@ public:
 			}
 			m_closedList.push_back( q );
 		}
+		// we've exhausted the open list and never find the end node, so there
+		// is no path there.
+		// When the user tries to call path(), the class will see that
+		// m_lastNode is still set to nullptr, and return an empty path.
+		clean();
 	}
 
 	std::vector<const node_t*> path(){
+		// the path is not yet in a usable form.  We need to copy it into a
+		// nice vector, without all of our internal node garbage.
+		// Firstly, did we even find a path?
 		if( m_lastNode ){
+			//if so allocated enough room in a vector and copy in the pointers
+			//back to front as we travel our graph from end to start
 			std::vector<const node_t*> returnList;
-			returnList.resize
-			( m_lastNode->graphLength );
+			returnList.resize( m_lastNode->graphLength );
 			InternalNode * runner = m_lastNode;
 			size_t index = m_lastNode->graphLength-1;
 			while( runner ){
@@ -137,13 +165,10 @@ public:
 		clean();
 		return std::vector<const node_t*>();
 	}
-	
-	void clean(){
-		m_nodeList.clear();
-	}
 
 private:
-	//Internally, 
+	//Internally, we wrap each user node into an InternalNode.  We need to keep
+	//track of some stuff for our algorithm to work.
 	struct InternalNode{
 		
 		const node_t * externalNode;
@@ -153,16 +178,25 @@ private:
 		
 	};
 	
+	//Internally, get new nodes here.  Every new node as added to this list and
+	//wrapped in a unique_ptr, so when we call clean, or the Search goes out of
+	//scope, we can be sure we didn't leak any nodes out of what can end up
+	//being a complicated set of graphs.  Poor man's garbage collector.
 	InternalNode * newInternalNode(){
 		m_nodeList.push_back( std::unique_ptr<InternalNode>( new InternalNode ) );
 		return m_nodeList[m_nodeList.size()-1].get();
 	}
-	
+	void clean(){
+		m_nodeList.clear();
+	}
+
 	//we have to use a list of pointers, rather then contiguous memory because
 	//of the graph structure.  We can't have InternalNodes moving around in
 	//memory.
 	std::vector<InternalNode*> m_openList;
 	std::vector<InternalNode*> m_closedList;
+
+	//for the poor man's garbage collector. 
 	std::vector<std::unique_ptr<InternalNode>> m_nodeList;
 
 	InternalNode * m_lastNode = nullptr;
