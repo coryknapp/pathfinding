@@ -36,34 +36,33 @@ public:
 ## Example
 
 ```c++
-	struct SimpleNode{
-		
-		SimpleNode( char name ) : name(name) {}
+struct SimpleNode{
+	
+	SimpleNode( char name ) : name(name) {}
 
-		char name;
-		std::vector<SimpleNode*>adjacentNodes;
+	char name;
+	std::vector<SimpleNode*>adjacentNodes;
 
-		//you can define the == operator pretty much anyway you'd like
-		//even comparing memory locations works
-		bool operator==(const SimpleNode& rhs) const{
-			return ( this == &rhs );
-		}
-		
-	};
+	//you can define the == operator pretty much anyway you'd like
+	//even comparing memory locations works
+	bool operator==(const SimpleNode& rhs) const{
+		return ( this == &rhs );
+	}
+	
+};
 
-	class SimpleAdaptor : Adaptor<SimpleNode>
-	{
-	public:
-		using Adaptor::node_t;
-		
-		std::vector<node_t*> getAdjacentNodes(const node_t& node){
-			return node.adjacentNodes;
-		}
+class SimpleAdaptor : Adaptor<SimpleNode>
+{
+public:
+	using Adaptor::node_t;
+	
+	std::vector<node_t*> getAdjacentNodes(const node_t& node){
+		return node.adjacentNodes;
+	}
 
-		unsigned heuristicDistanceBetweenAdjacentNodes(const node_t& a,
-													   const node_t& b){
-			return 1;
-		}
-	};
-```c++
-
+	unsigned heuristicDistanceBetweenAdjacentNodes(const node_t& a,
+												   const node_t& b){
+		return 1;
+	}
+};
+```
