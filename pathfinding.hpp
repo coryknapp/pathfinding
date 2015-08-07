@@ -15,6 +15,11 @@ namespace pf{
 template<typename NODE>	
 class Adaptor{
 public:
+
+	//An adaptor can have a constructor, we just need to pass the parameters
+	//types into the Search templates, and the arguments into the Search
+	//constructor
+
 	//There are two requirements for a 'node' class
 	//1.Your adaptor class must be able to find a node's adjacent nodes using
 	//	only it's members.
@@ -33,15 +38,14 @@ public:
 														   const node_t&) = 0;
 };
 
-template<typename ADAPTOR>
+template<typename ADAPTOR, typename... ARGS>
 class Search{
 
 public:
 	typedef typename ADAPTOR::node_t node_t;
 
-
-	Search(	const node_t& start,const node_t& end){
-
+	Search(	const node_t& start,const node_t& end, ARGS... args){
+		m_adaptor = std::unique_ptr<ADAPTOR>( new ADAPTOR( args... ) );
 		//create the first internal node, the ancestor to all nodes, and
 		//initialize it.
 		InternalNode * startNodePtr = newInternalNode();
@@ -72,8 +76,8 @@ public:
 			m_openList.pop_back();
 			//generate q's successors
 			auto successorList =
-				adaptorFunctor.getAdjacentNodes(*(q->externalNode));
-			for (auto &externalNodeSuccessor : successorList) {
+				m_adaptor->getAdjacentNodes(*(q->externalNode));
+			for( auto &externalNodeSuccessor : successorList ) {
 				//check to see it this is the end node
 				if( *externalNodeSuccessor == end ){
 					//create a final internal node to make it easier when we go
@@ -93,10 +97,10 @@ public:
 				newNodePtr->externalNode = externalNodeSuccessor;
 				//calculate the new node's scored
 				newNodePtr->g = q->g +
-					adaptorFunctor.heuristicDistanceBetweenAdjacentNodes(
+					m_adaptor->heuristicDistanceBetweenAdjacentNodes(
 						*newNodePtr->externalNode, *q->externalNode );
 				newNodePtr->h =
-					adaptorFunctor.heuristicDistanceBetweenAdjacentNodes(
+					m_adaptor->heuristicDistanceBetweenAdjacentNodes(
 						*newNodePtr->externalNode, end );
 				newNodePtr->f = newNodePtr->g + newNodePtr->h;
 				newNodePtr->graphLength = q->graphLength+1;
@@ -201,7 +205,7 @@ private:
 
 	InternalNode * m_lastNode = nullptr;
 	
-	ADAPTOR adaptorFunctor;
+	std::unique_ptr<ADAPTOR> m_adaptor;
 };
 
 } /* pf */

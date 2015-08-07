@@ -1,5 +1,5 @@
 //qbr clang++ -std=c++11 test.cpp
-//./a.out
+//qbr ./a.out --force-colour -b
 #include "pathfinding.hpp"
 
 #define CATCH_CONFIG_MAIN
@@ -24,7 +24,7 @@ TEST_CASE( "SimpleGraph", "[graph]" ) {
 		SimpleNode( char name ) : name(name) {}
 
 		char name;
-		std::vector<SimpleNode*>adjacentNodes;
+		std::vector<SimpleNode&>adjacentNodes;
 
 		//you can define the == operator pretty much anyway you'd like
 		//even comparing memory locations works
@@ -39,7 +39,7 @@ TEST_CASE( "SimpleGraph", "[graph]" ) {
 	public:
 		using Adaptor::node_t;
 		
-		std::vector<node_t*> getAdjacentNodes(const node_t& node){
+		std::vector<node_t&> getAdjacentNodes(const node_t& node){
 			return node.adjacentNodes;
 		}
 
@@ -57,8 +57,8 @@ TEST_CASE( "SimpleGraph", "[graph]" ) {
 		SimpleNode b('b');
 		SimpleNode c('c');
 
-		a.adjacentNodes.push_back( &b );
-		b.adjacentNodes.push_back( &c );
+		a.adjacentNodes.push_back( b );
+		b.adjacentNodes.push_back( c );
 
 		Search<SimpleAdaptor> search( a, c );
 		auto results = search.path();
@@ -80,13 +80,13 @@ TEST_CASE( "SimpleGraph", "[graph]" ) {
 		SimpleNode d2('D');
 		SimpleNode e('e');
 		
-		s.adjacentNodes.push_back( &u );
-		s.adjacentNodes.push_back( &d1 );
+		s.adjacentNodes.push_back( u );
+		s.adjacentNodes.push_back( d1 );
 	
-		d1.adjacentNodes.push_back( &d2 );
-		d2.adjacentNodes.push_back( &e );
+		d1.adjacentNodes.push_back( d2 );
+		d2.adjacentNodes.push_back( e );
 		
-		u.adjacentNodes.push_back( &e );
+		u.adjacentNodes.push_back( e );
 		
 		Search<SimpleAdaptor> search( s, e );
 		auto results = search.path();
