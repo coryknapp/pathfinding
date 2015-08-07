@@ -91,9 +91,7 @@ public:
 				// create and initialize a new internal node for each of q's
 				// successor's
 				InternalNode * newNodePtr = newInternalNode();
-				//copy address of the external node. TODO as discussed above,
-				//we may want to add an option where pathfinding copies nodes
-				//for when the user doesn't have persistent node objects. 
+				//copy address of the external node. 
 				newNodePtr->externalNode = externalNodeSuccessor;
 				//calculate the new node's scored
 				newNodePtr->g = q->g +
