@@ -89,7 +89,7 @@ public:
 					return;
 				}
 				// create and initialize a new internal node for each of q's
-				// successor's
+				// successors
 				InternalNode * newNodePtr = newInternalNode();
 				//copy address of the external node. 
 				newNodePtr->externalNode = externalNodeSuccessor;
