@@ -44,23 +44,13 @@ class Search{
 public:
 	typedef typename ADAPTOR::node_t node_t;
 
-	Search(	const node_t& start,const node_t& end, ARGS... args){
+	Search(	const node_t& start,const node_t& end, ARGS... args) :
+		end( *&end ){
 		m_adaptor = std::unique_ptr<ADAPTOR>( new ADAPTOR( args... ) );
 		//create the first internal node, the ancestor to all nodes, and
 		//initialize it.
-		InternalNode * startNodePtr = newInternalNode();
-		//copy the address of the user defined node.
-		//TODO there could be cases where the user's node may be freed. so we
-		//put in an option to copy nodes if necessary.
-		startNodePtr->externalNode = &start;
-		//clear the scores for the new node.
-		startNodePtr->h = 0;
-		startNodePtr->g = 0;
-		startNodePtr->f = 0;
-		//keep track of how long the paths are to ease allocating a vector to
-		//hold the path later
-		startNodePtr->graphLength = 1;
-		//put node in the list of candidate nodes.
+		InternalNode * startNodePtr = newInternalNode( nullptr, &start );
+
 		m_openList.push_back( startNodePtr );
 
 		while( !m_openList.empty() ){
@@ -72,7 +62,7 @@ public:
 					return a->f > b->f;
 				});
     		//pop q off the open list
-			auto q = m_openList[ m_openList.size()-1 ];
+			InternalNode * q = m_openList[ m_openList.size()-1 ];
 			m_openList.pop_back();
 			//generate q's successors
 			auto successorList =
@@ -82,27 +72,13 @@ public:
 				if( *externalNodeSuccessor == end ){
 					//create a final internal node to make it easier when we go
 					//to return our results
-					m_lastNode = newInternalNode();
-					m_lastNode->externalNode = &end;
-					m_lastNode->parent = q;
-					m_lastNode->graphLength = q->graphLength +1;
+					m_lastNode = newInternalNode( q, &end);
 					return;
 				}
 				// create and initialize a new internal node for each of q's
 				// successors
-				InternalNode * newNodePtr = newInternalNode();
-				//copy address of the external node. 
-				newNodePtr->externalNode = externalNodeSuccessor;
-				//calculate the new node's scored
-				newNodePtr->g = q->g +
-					m_adaptor->heuristicDistanceBetweenAdjacentNodes(
-						*newNodePtr->externalNode, *q->externalNode );
-				newNodePtr->h =
-					m_adaptor->heuristicDistanceBetweenAdjacentNodes(
-						*newNodePtr->externalNode, end );
-				newNodePtr->f = newNodePtr->g + newNodePtr->h;
-				newNodePtr->graphLength = q->graphLength+1;
-				newNodePtr->parent = q;
+				InternalNode * newNodePtr = newInternalNode( q, externalNodeSuccessor);
+				
 				//addFlag can be changed by the two conditionals below if the
 				//new node is unsuitable.
 				bool addFlag = true;
@@ -174,24 +150,58 @@ private:
 	struct InternalNode{
 		
 		const node_t * externalNode;
-		InternalNode * parent = nullptr;
+		InternalNode * parent;
 		unsigned f, g, h;
 		unsigned graphLength;
 		
+		~InternalNode(){
+			std::cout << "deleting " << externalNode << std::endl;  
+		}
 	};
 	
 	//Internally, get new nodes here.  Every new node as added to this list and
 	//wrapped in a unique_ptr, so when we call clean, or the Search goes out of
 	//scope, we can be sure we didn't leak any nodes out of what can end up
 	//being a complicated set of graphs.  Poor man's garbage collector.
-	InternalNode * newInternalNode(){
+	InternalNode * newInternalNode( InternalNode * parent,
+								    const node_t * externalNode){
+
 		m_nodeList.push_back( std::unique_ptr<InternalNode>( new InternalNode ) );
-		return m_nodeList[m_nodeList.size()-1].get();
+		auto newNode = m_nodeList[ m_nodeList.size() - 1 ].get();
+		newNode->externalNode = externalNode;
+		newNode->parent = parent;
+		
+		std::cout << "new internal = " << externalNode << std::endl
+		;
+		
+		if( parent == nullptr ){
+			newNode->f = 0;
+			newNode->g = 0;
+			newNode->h = 0;
+			newNode->graphLength = 1
+			;
+		} else {
+			//calculate the new node's scored
+			newNode->g = parent->g +
+				m_adaptor->heuristicDistanceBetweenAdjacentNodes(
+					*newNode->externalNode, *parent->externalNode );
+			newNode->h =
+				m_adaptor->heuristicDistanceBetweenAdjacentNodes(
+					*newNode->externalNode, end );
+			newNode->f = newNode->g + newNode->h;
+			newNode->graphLength = parent->graphLength+1;
+
+		}
+		return newNode;
 	}
 	void clean(){
 		m_nodeList.clear();
 	}
 
+	// we need to know the end node when we calculate scores in
+	// newInternalNode()
+	const node_t &end;
+	
 	//we have to use a list of pointers, rather then contiguous memory because
 	//of the graph structure.  We can't have InternalNodes moving around in
 	//memory.
