@@ -51,9 +51,9 @@ public:
 		//initialize it.
 		const InternalNode * startNodePtr = newInternalNode( nullptr, &start );
 		m_openList.push_back( startNodePtr );
-		const InternalNode * q = popInternalNode();
 
 		while( !m_openList.empty() ){
+    		const InternalNode * q = popInternalNode();
 			// find the node on the open list with the lowest 'f' score.
 			//generate q's successors
 			auto successorList =
@@ -100,8 +100,10 @@ public:
 				//otherwise, add the node to the open list
 				if( addFlag )
 					m_openList.push_back( newNodePtr );
-				else
-					delete newNodePtr;
+				// we may consider later doing `delete newNodePtr` here, but as
+				// it's set up now, we get all out internal nodes from the
+				// `newInternalNode` function which manages our memory for us,
+				// so we'd have to consider that.
 			}
 			m_closedList.push_back( q );
 		}
@@ -174,19 +176,26 @@ private:
 			newNode = new InternalNode( externalNode, parent, 0, 0, 0, 1);
 		} else {
 			//calculate the new node's scored
-			newNode = new InternalNode( externalNode, parent,
-					newNode->g + newNode->h,
-					parent->g + m_adaptor->heuristicDistanceBetweenAdjacentNodes(
-						*externalNode, *parent->externalNode ),
-    				m_adaptor->heuristicDistanceBetweenAdjacentNodes(
-					*externalNode, end ),
-					parent->graphLength+1 );
+			unsigned g = parent->g +
+    			m_adaptor->heuristicDistanceBetweenAdjacentNodes(
+					*externalNode, *parent->externalNode  );
+			unsigned h = m_adaptor->heuristicDistanceBetweenAdjacentNodes(
+				*externalNode, end );
+			unsigned f = g + h;
+			newNode = new InternalNode( externalNode, parent, f, g, h,
+									    parent->graphLength+1 );
 
 		}
 		m_nodeList.push_back( std::unique_ptr<InternalNode>( newNode ) );
 		return newNode;
 	}
 	void clean(){
+		std::cout << "starting clean, size = " << m_nodeList.size() << std::endl;
+		int c = 0;
+		for ( auto &e : m_nodeList ) {
+			std::cout << ++c << "-" << e->externalNode << std::endl;
+			std::cout << "{" << e->externalNode->first << ", " <<e->externalNode->second << "} " << std::endl;
+		}
 		m_nodeList.clear();
 	}
 
