@@ -8,7 +8,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 #include <vector>
-
+#include <boost/utility.hpp>
 using namespace pf;
 
 TEST_CASE( "SimpleGraph", "[graph]" ) {
@@ -22,7 +22,7 @@ TEST_CASE( "SimpleGraph", "[graph]" ) {
 	//	can be expected to be unique and never moved.  You can define your
 	//	node's equality however you want: comparing positions, some kind of id
 	//	code, etc. 
-	struct SimpleNode{
+	struct SimpleNode : boost::noncopyable{
 		
 		SimpleNode( char name ) : name(name) {}
 
@@ -93,6 +93,7 @@ TEST_CASE( "SimpleGraph", "[graph]" ) {
 		
 		Search<SimpleAdaptor> search( s, e );
 		auto results = search.path();
+
 		REQUIRE( results.size() == 3 );
 		REQUIRE( results[0]->name == 's' );
 		REQUIRE( results[1]->name == 'u' );
@@ -124,11 +125,11 @@ TEST_CASE( "Generating node's on the fly", "[graph]" ) {
 				return false;
 			if( ( j >= 5 )||( j < 0 ) )
 				return false;
-			return grid[i+j*5];
+			return grid[i+j*5] == 0;
 		}
 			
 		node_t * makeNode( int i, int j ){
-			return new pair<int,int>(i,j);
+			return new pair<int, int>( i, j);
 			garbageCollecter.push_back(
 				unique_ptr<std::pair<int, int>>(
 					new pair<int, int>(i,j)
@@ -142,16 +143,14 @@ TEST_CASE( "Generating node's on the fly", "[graph]" ) {
 			std::vector<std::pair<int,int>*> returnVector;
 			int i = node.first;
 			int j = node.second;
-			//north
 			if( validNode( i-1, j ) )
 				returnVector.push_back( makeNode( i-1, j ) );
 			if( validNode( i+1, j ) )
 				returnVector.push_back( makeNode( i+1, j ) );
 			if( validNode( i, j-1 ) )
 				returnVector.push_back( makeNode( i, j-1 ) );
-			if( validNode( i, j ) )
-				returnVector.push_back( makeNode( i-1, j ) );
-	
+			if( validNode( i, j+1 ) )
+				returnVector.push_back( makeNode( i, j+1 ) );
 			return returnVector;
 		}
 
@@ -168,10 +167,10 @@ TEST_CASE( "Generating node's on the fly", "[graph]" ) {
 					0,	0,	0,	0,	0,
 					0,	0,	0,	0,	0,
 					0,	0,	0,	0,	0 };
-		//Search<MyAdaptor, const bool *> search(
-		//	std::pair<int,int>(0,0), std::pair<int,int>(4,4), grid );
-		//auto path = search.path();
-		//REQUIRE( path.size() == 9 );
+		Search<MyAdaptor, const bool *> search(
+			std::pair<int,int>(0,0), std::pair<int,int>(4,4), grid );
+		auto path = search.path();
+		REQUIRE( path.size() == 9 );
 	}
 
 }
