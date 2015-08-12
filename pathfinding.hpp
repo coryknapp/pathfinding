@@ -12,7 +12,7 @@ namespace pf{
 //everything below:
 //	node_t, getAdjacentNodes(...), and heuristicDistanceBetweenAdjacentNodes(..)
 //See test.cpp for example.
-template<typename NODE>	
+template<typename NODE>
 class Adaptor{
 public:
 
@@ -131,7 +131,7 @@ public:
 				runner = runner->parent;
 			}
 			clean();
-			return returnList;
+			return std::move( returnList );
 		}
 		clean();
 		return std::vector<const node_t*>();
@@ -155,9 +155,6 @@ private:
 		const unsigned f, g, h;
 		const unsigned graphLength;
 		
-		~InternalNode(){
-			std::cout << "deleting " << externalNode << std::endl;  
-		}
 	};
 	
 	//Internally, get new nodes here.  Every new node as added to this list and
@@ -169,8 +166,6 @@ private:
 
 		InternalNode * newNode;
 		
-		std::cout << "new internal = " << externalNode << std::endl
-		;
 		
 		if( parent == nullptr ){
 			newNode = new InternalNode( externalNode, parent, 0, 0, 0, 1);
@@ -190,12 +185,6 @@ private:
 		return newNode;
 	}
 	void clean(){
-		std::cout << "starting clean, size = " << m_nodeList.size() << std::endl;
-		int c = 0;
-		for ( auto &e : m_nodeList ) {
-			std::cout << ++c << "-" << e->externalNode << std::endl;
-			std::cout << "{" << e->externalNode->first << ", " <<e->externalNode->second << "} " << std::endl;
-		}
 		m_nodeList.clear();
 	}
 
