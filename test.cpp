@@ -227,8 +227,12 @@ TEST_CASE( "spied on optimization check", "[graph]" ) {
 		using Adaptor::node_t;
 	 	const bool * grid;
 		
+		int &adjacentNodeAskCount;
+			
 		vector<unique_ptr<node_t> >garbageCollecter;
-		MyAdaptor( const bool * grid ) : grid(grid){
+		MyAdaptor( const bool * grid, int &adjacentNodeAskCount ):
+			grid(grid),
+			adjacentNodeAskCount( adjacentNodeAskCount ){
 		}
 		
 		bool validNode( int i, int j ){
@@ -250,7 +254,7 @@ TEST_CASE( "spied on optimization check", "[graph]" ) {
 		}
 
 		std::vector<node_t*> getAdjacentNodes(const node_t& node){
-			std::cout << "getAdjacentNodes("<<node.first<<','<<node.second<<")\n";
+			adjacentNodeAskCount++;
 			std::vector<std::pair<int,int>*> returnVector;
 			int i = node.first;
 			int j = node.second;
@@ -278,9 +282,71 @@ TEST_CASE( "spied on optimization check", "[graph]" ) {
 					0,	0,	0,	0,	0,
 					0,	0,	0,	0,	0,
 					0,	0,	0,	0,	0 };
-		Search<MyAdaptor, const bool *> search(
-			std::pair<int,int>(0,0), std::pair<int,int>(4,4), grid );
+		int adjacentNodeAskCount = 0;
+		Search<MyAdaptor, const bool *, int& > search(
+			std::pair<int,int>(0,0),
+			std::pair<int,int>(4,4),
+			grid,
+			adjacentNodeAskCount );
 		auto path = search.path();
 		REQUIRE( path.size() == 9 );
+		REQUIRE( adjacentNodeAskCount == 8 );
 	}
+
+	SECTION( "zigzag grid" ) {
+		const bool grid[25] =
+				{	0,	1,	0,	0,	0,
+					0,	1,	0,	1,	0,
+					0,	1,	0,	1,	0,
+					0,	1,	0,	1,	0,
+					0,	0,	0,	1,	0 };
+		int adjacentNodeAskCount = 0;
+		Search<MyAdaptor, const bool *, int& > search(
+			std::pair<int,int>(0,0),
+			std::pair<int,int>(4,4),
+			grid,
+			adjacentNodeAskCount );
+		auto path = search.path();
+		REQUIRE( path.size() == 17 );
+		REQUIRE( adjacentNodeAskCount == 16 );
+	}
+
+	SECTION( "lowerpath better grid" ) {
+		const bool grid[25] =
+				{	0,	0,	0,	0,	0,
+					0,	1,	1,	1,	0,
+					0,	1,	0,	0,	0,
+					0,	1,	0,	1,	1,
+					0,	0,	0,	0,	0 };
+		int adjacentNodeAskCount = 0;
+		Search<MyAdaptor, const bool *, int& > search(
+			std::pair<int,int>(0,0),
+			std::pair<int,int>(4,4),
+			grid,
+			adjacentNodeAskCount );
+		auto path = search.path();
+		REQUIRE( path.size() == 9 );
+		REQUIRE( adjacentNodeAskCount == 8 );
+	}
+
+	SECTION( "upper path better grid" ) {
+		const bool grid[25] =
+				{	0,	0,	0,	0,	0,
+					0,	1,	1,	1,	0,
+					0,	1,	0,	0,	0,
+					0,	1,	0,	1,	0,
+					0,	0,	0,	1,	0 };
+		int adjacentNodeAskCount = 0;
+		Search<MyAdaptor, const bool *, int& > search(
+			std::pair<int,int>(0,0),
+			std::pair<int,int>(4,4),
+			grid,
+			adjacentNodeAskCount );
+		auto path = search.path();
+		REQUIRE( path.size() == 9 );
+		REQUIRE( adjacentNodeAskCount == 8 );
+	}
+
+
+
 }
