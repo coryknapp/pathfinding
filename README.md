@@ -31,7 +31,8 @@ public:
  1.	Each node has knowlage of it's adjacent nodes, rather then maintaining those
  relationships in a seperate graph object
  2. The memory management of nodes is handled by your program.  Meaning any
- nodes returned by getAdjacentNodes must later be deleted by you.
+ nodes allocate (perhaps in your implementation of getAdjacentNodes) you must
+ retain for the duration of the pathfinding and delete yourself after.
 
 ## Example
 
